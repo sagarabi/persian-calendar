@@ -35,18 +35,27 @@ jobs:
         shell: bash
         run: |
           VERSION=$(grep -oE 'versionName = "[^"]+"' PersianCalendar/build.gradle.kts | head -1 | cut -d'"' -f2)
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine versionName"
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Build version: $VERSION"
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew :PersianCalendar:assembleDebug --stacktrace
 
-      - name: Collect APKs
+      - name: Collect APK
         shell: bash
         run: |
           mkdir -p release-apks
-          find . -type f -path '*/build/outputs/apk/*.apk' -exec cp {} release-apks/ \;
-          echo "Generated APKs:"
+          APK="PersianCalendar/build/outputs/apk/debug/PersianCalendar-debug.apk"
+          if [ ! -f "$APK" ]; then
+            echo "APK not found at $APK"
+            find . -type f -path '*/build/outputs/apk/*.apk' -print
+            exit 1
+          fi
+          cp "$APK" "release-apks/PersianCalendar-${{ steps.version.outputs.version }}-debug.apk"
           ls -lh release-apks
 
       - name: Create GitHub Release
